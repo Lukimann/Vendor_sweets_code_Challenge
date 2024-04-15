@@ -10,46 +10,44 @@ metadata = MetaData(naming_convention={
 
 db = SQLAlchemy(metadata=metadata)
 
+class Vendor(db.Model, SerializerMixin):
+    __tablename__ = 'vendor'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    create_at = db.Column(db.DateTime, nullable=False)
+    update_at = db.Column(db.DateTime, onupdate=db.func.now(), nullable=False)
+    vendor_sweets = db.relationship('VendorSweet', back_populates='vendor')
+
+    serialize_rules = ('-vendor_sweets.vendor',)
 
 class Sweet(db.Model, SerializerMixin):
-    __tablename__ = 'sweets'
+    __tablename__ = 'sweet'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-
-    # Add relationship
-    
-    # Add serialization
-    
-    def __repr__(self):
-        return f'<Sweet {self.id}>'
-
-
-class Vendor(db.Model, SerializerMixin):
-    __tablename__ = 'vendors'
-
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-
-    # Add relationship
-    
-    # Add serialization
-    
-    def __repr__(self):
-        return f'<Vendor {self.id}>'
-
+    name = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    updated_at = db.Column(db.DateTime, onupdate=db.func.now(), nullable=False)
+    vendor_sweets = db.relationship('VendorSweet', back_populates='sweet')
 
 class VendorSweet(db.Model, SerializerMixin):
-    __tablename__ = 'vendor_sweets'
+    __tablename__ = 'vendor_sweet'
 
     id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('vendor.id'), nullable=False)
+    sweet_id = db.Column(db.Integer, db.ForeignKey('sweet.id'), nullable=False)
     price = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False)
+    updated_at = db.Column(db.DateTime, onupdate=db.func.now(), nullable=False)
+    vendor = db.relationship('Vendor', back_populates='vendor_sweets')
+    sweet = db.relationship('Sweet', back_populates='vendor_sweets')
 
-    # Add relationships
-    
-    # Add serialization
-    
-    # Add validation
-    
-    def __repr__(self):
-        return f'<VendorSweet {self.id}>'
+    serialize_rules = ('-vendor', '-sweet')
+
+    @db.validates('price')
+    def validate_price(self, key, value):
+        if not value:
+            raise ValueError('Price cannot be blank')
+        if value < 0:
+            raise ValueError("Price can't be negative number")
+        return value
